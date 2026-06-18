@@ -24,7 +24,7 @@ function itemNameFor(incidentType: SubmitBody["incidentType"], answers: Record<s
   return `Property Damage – ${answers.customerName || "Unknown customer"} – ${date}`;
 }
 
-// Dropdown/status columns need {label: value} per the monday column_values format.
+// Dropdown columns need {labels: [value]}; status columns need {label: value} — different formats.
 const DROPDOWN_KEYS = new Set([
   "wasAnyoneInjured",
   "seatbeltWorn",
@@ -47,7 +47,7 @@ const PHONE_KEYS = new Set(["driverPhone", "claimantPhone", "claimantInsurancePh
 
 function buildColumnValues(incidentType: SubmitBody["incidentType"], answers: Record<string, string>) {
   const columnValues: Record<string, any> = {
-    [TOP_LEVEL_COLUMN_ID]: { label: incidentType },
+    [TOP_LEVEL_COLUMN_ID]: { labels: [incidentType] },
   };
 
   for (const [key, value] of Object.entries(answers)) {
@@ -55,7 +55,7 @@ function buildColumnValues(incidentType: SubmitBody["incidentType"], answers: Re
     if (!columnId || value === undefined || value === null || value === "") continue;
 
     if (DROPDOWN_KEYS.has(key)) {
-      columnValues[columnId] = { label: value };
+      columnValues[columnId] = { labels: [value] };
     } else if (STATUS_KEYS.has(key)) {
       columnValues[columnId] = { label: value };
     } else if (DATE_KEYS.has(key)) {
