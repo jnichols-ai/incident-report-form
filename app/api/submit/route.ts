@@ -44,6 +44,10 @@ const DROPDOWN_KEYS = new Set([
 const STATUS_KEYS = new Set(["customerNotificationStatus"]);
 const DATE_KEYS = new Set(["dateOfIncident", "driverDob", "claimantDob"]);
 const PHONE_KEYS = new Set(["driverPhone", "claimantPhone", "claimantInsurancePhone", "witnessPhone"]);
+// "location" is a monday Location-type column. Passing a plain string makes monday
+// try to auto-parse it into lat/lng/address and produces garbage. Send the object
+// shape directly with address-only (no lat/lng) so it's stored as free text instead.
+const LOCATION_KEYS = new Set(["location"]);
 
 function buildColumnValues(incidentType: SubmitBody["incidentType"], answers: Record<string, string>) {
   const columnValues: Record<string, any> = {
@@ -66,6 +70,8 @@ function buildColumnValues(incidentType: SubmitBody["incidentType"], answers: Re
       }
     } else if (PHONE_KEYS.has(key)) {
       columnValues[columnId] = { phone: value, countryShortName: "US" };
+    } else if (LOCATION_KEYS.has(key)) {
+      columnValues[columnId] = { address: value };
     } else {
       columnValues[columnId] = value;
     }
