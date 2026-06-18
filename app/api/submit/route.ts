@@ -71,7 +71,9 @@ function buildColumnValues(incidentType: SubmitBody["incidentType"], answers: Re
     } else if (PHONE_KEYS.has(key)) {
       columnValues[columnId] = { phone: value, countryShortName: "US" };
     } else if (LOCATION_KEYS.has(key)) {
-      columnValues[columnId] = { address: value };
+      // monday's Location column requires lat/lng alongside address. We don't
+      // geocode, so use placeholder coordinates — only the address text matters here.
+      columnValues[columnId] = { lat: "0", lng: "0", address: value };
     } else {
       columnValues[columnId] = value;
     }
