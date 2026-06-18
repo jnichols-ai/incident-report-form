@@ -77,7 +77,7 @@ export async function uploadFileToColumn(
     "map",
     JSON.stringify({ file: "variables.file" })
   );
-  form.append("file", new Blob([file]), filename);
+  form.append("file", new Blob([new Uint8Array(file)]), filename);
 
   const res = await fetch(MONDAY_FILE_URL, {
     method: "POST",
