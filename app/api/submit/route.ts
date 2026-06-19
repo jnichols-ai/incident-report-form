@@ -82,20 +82,42 @@ function buildColumnValues(incidentType: SubmitBody["incidentType"], answers: Re
   return columnValues;
 }
 
+// Photo upload fields, mapped to their monday file column. Whichever fields
+// are populated depends on incidentType (the form only shows relevant ones),
+// so it's safe to check all of them on every submission.
+const PHOTO_FIELDS: Array<{ field: string; columnId: string }> = [
+  { field: "accidentPhotos", columnId: FILE_COLUMN_IDS.accidentPhotos },
+  { field: "policeReportPhoto", columnId: FILE_COLUMN_IDS.policeReportPhoto },
+  { field: "workInjuryPhotos", columnId: FILE_COLUMN_IDS.workInjuryPhotos },
+  { field: "propertyDamagePhotos", columnId: FILE_COLUMN_IDS.propertyDamagePhotos },
+];
+
 export async function POST(req: NextRequest) {
   try {
-    const body: SubmitBody = await req.json();
-    const { incidentType, answers, submittedBy } = body;
+    const formData = await req.formData();
+    const incidentType = formData.get("incidentType") as SubmitBody["incidentType"] | null;
+    const answersRaw = formData.get("answers");
+    const submittedBy = (formData.get("submittedBy") as string) || undefined;
 
-    if (!incidentType || !answers) {
+    if (!incidentType || typeof answersRaw !== "string") {
       return NextResponse.json({ error: "Missing incidentType or answers" }, { status: 400 });
     }
+
+    const answers: Record<string, string> = JSON.parse(answersRaw);
 
     const groupId = groupForIncidentType(incidentType);
     const itemName = itemNameFor(incidentType, answers);
     const columnValues = buildColumnValues(incidentType, answers);
 
     const itemId = await createItem(BOARD_ID, groupId, itemName, columnValues);
+
+    for (const { field, columnId } of PHOTO_FIELDS) {
+      const files = formData.getAll(field).filter((v): v is File => v instanceof File && v.size > 0);
+      for (const file of files) {
+        const buffer = Buffer.from(await file.arrayBuffer());
+        await uploadFileToColumn(itemId, columnId, buffer, file.name || `${field}.jpg`);
+      }
+    }
 
     // Only Auto Accident submissions get the filled Accident Report PDF,
     // since that's the only template we have on file.

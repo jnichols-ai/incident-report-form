@@ -85,13 +85,75 @@ function Header() {
   );
 }
 
+function FileField({
+  label,
+  required,
+  multiple,
+  files,
+  onChange,
+}: {
+  label: string;
+  required?: boolean;
+  multiple?: boolean;
+  files: File[];
+  onChange: (files: File[]) => void;
+}) {
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <label style={{ fontSize: 14, fontWeight: 600, color: BRAND_BLACK }}>
+        {label}
+        {required ? <span style={{ color: BRAND_RED }}> *</span> : null}
+      </label>
+      <input
+        type="file"
+        accept="image/*"
+        multiple={multiple}
+        onChange={(e) => onChange(Array.from(e.target.files || []))}
+        required={!!required}
+        style={{
+          width: "100%",
+          padding: "10px 12px",
+          borderRadius: 8,
+          border: "1px solid #d0d3d8",
+          fontSize: 14,
+          marginTop: 4,
+          background: "white",
+        }}
+      />
+      {files.length > 0 && (
+        <ul style={{ marginTop: 6, paddingLeft: 18, fontSize: 13, color: "#555" }}>
+          {files.map((f, i) => (
+            <li key={i}>{f.name}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+type PhotoFields = {
+  accidentPhotos: File[];
+  policeReportPhoto: File[];
+  workInjuryPhotos: File[];
+  propertyDamagePhotos: File[];
+};
+
+const EMPTY_PHOTOS: PhotoFields = {
+  accidentPhotos: [],
+  policeReportPhoto: [],
+  workInjuryPhotos: [],
+  propertyDamagePhotos: [],
+};
+
 export default function IncidentForm() {
   const [incidentType, setIncidentType] = useState<IncidentType | "">("");
   const [answers, setAnswers] = useState<Answers>({});
+  const [photos, setPhotos] = useState<PhotoFields>(EMPTY_PHOTOS);
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
 
   const setAnswer = (key: string, value: string) => setAnswers((prev) => ({ ...prev, [key]: value }));
+  const setPhotoField = (key: keyof PhotoFields, files: File[]) => setPhotos((prev) => ({ ...prev, [key]: files }));
 
   const fields = useMemo<FormField[]>(() => {
     if (incidentType === "Auto Accident") return AUTO_ACCIDENT_FIELDS;
@@ -106,13 +168,32 @@ export default function IncidentForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setStatus("submitting");
     setErrorMessage("");
+
+    if (incidentType === "Auto Accident" && photos.accidentPhotos.length === 0) {
+      setStatus("error");
+      setErrorMessage("Please attach at least one photo of the accident.");
+      return;
+    }
+    if (incidentType === "Damager To Customers Property" && photos.propertyDamagePhotos.length === 0) {
+      setStatus("error");
+      setErrorMessage("Please attach at least one photo.");
+      return;
+    }
+
+    setStatus("submitting");
     try {
+      const formData = new FormData();
+      formData.append("incidentType", incidentType);
+      formData.append("answers", JSON.stringify(answers));
+      photos.accidentPhotos.forEach((f) => formData.append("accidentPhotos", f));
+      photos.policeReportPhoto.forEach((f) => formData.append("policeReportPhoto", f));
+      photos.workInjuryPhotos.forEach((f) => formData.append("workInjuryPhotos", f));
+      photos.propertyDamagePhotos.forEach((f) => formData.append("propertyDamagePhotos", f));
+
       const res = await fetch("/api/submit", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ incidentType, answers }),
+        body: formData,
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Submission failed");
@@ -131,7 +212,7 @@ export default function IncidentForm() {
           <h2 style={{ color: BRAND_BLACK }}>Report submitted</h2>
           <p>Thanks — your incident report has been recorded.</p>
           <button
-            onClick={() => { setStatus("idle"); setIncidentType(""); setAnswers({}); }}
+            onClick={() => { setStatus("idle"); setIncidentType(""); setAnswers({}); setPhotos(EMPTY_PHOTOS); }}
             style={{ marginTop: 16, padding: "10px 20px", borderRadius: 8, border: `1px solid ${BRAND_RED}`, background: "white", color: BRAND_RED, fontWeight: 600, cursor: "pointer" }}
           >
             Submit another report
@@ -155,6 +236,7 @@ export default function IncidentForm() {
           onChange={(e) => {
             setIncidentType(e.target.value as IncidentType);
             setAnswers({});
+            setPhotos(EMPTY_PHOTOS);
           }}
           required
         >
@@ -173,6 +255,14 @@ export default function IncidentForm() {
 
       {incidentType === "Auto Accident" && (
         <>
+          <FileField
+            label="Photos of the Accident"
+            required
+            multiple
+            files={photos.accidentPhotos}
+            onChange={(files) => setPhotoField("accidentPhotos", files)}
+          />
+
           <Field
             field={{ key: "wasAnyoneInjured", label: "Was anyone injured?", type: "select", options: ["No Injuries", "Minor Injuries", "Serious Injuries", "Unknown"], required: true }}
             value={answers.wasAnyoneInjured}
@@ -194,9 +284,36 @@ export default function IncidentForm() {
             value={answers.policeInvolved}
             onChange={setAnswer}
           />
-          {showPoliceFollowup &&
-            POLICE_FOLLOWUP_FIELDS.map((f) => <Field key={f.key} field={f} value={answers[f.key]} onChange={setAnswer} />)}
+          {showPoliceFollowup && (
+            <>
+              {POLICE_FOLLOWUP_FIELDS.map((f) => <Field key={f.key} field={f} value={answers[f.key]} onChange={setAnswer} />)}
+              <FileField
+                label="Picture of Police Report or Paperwork"
+                files={photos.policeReportPhoto}
+                onChange={(files) => setPhotoField("policeReportPhoto", files)}
+              />
+            </>
+          )}
         </>
+      )}
+
+      {incidentType === "Work Injury" && (
+        <FileField
+          label="Photos"
+          multiple
+          files={photos.workInjuryPhotos}
+          onChange={(files) => setPhotoField("workInjuryPhotos", files)}
+        />
+      )}
+
+      {incidentType === "Damager To Customers Property" && (
+        <FileField
+          label="Photos"
+          required
+          multiple
+          files={photos.propertyDamagePhotos}
+          onChange={(files) => setPhotoField("propertyDamagePhotos", files)}
+        />
       )}
 
       {incidentType && (
