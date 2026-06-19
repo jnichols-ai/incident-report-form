@@ -15,6 +15,9 @@ import {
 
 type Answers = Record<string, string>;
 
+const BRAND_RED = "#c1272d";
+const BRAND_BLACK = "#1a1a1a";
+
 function Field({
   field,
   value,
@@ -35,9 +38,9 @@ function Field({
 
   return (
     <div style={{ marginBottom: 16 }}>
-      <label style={{ fontSize: 14, fontWeight: 600, color: "#222" }}>
+      <label style={{ fontSize: 14, fontWeight: 600, color: BRAND_BLACK }}>
         {field.label}
-        {field.required ? <span style={{ color: "#d23" }}> *</span> : null}
+        {field.required ? <span style={{ color: BRAND_RED }}> *</span> : null}
       </label>
       {field.type === "select" ? (
         <select
@@ -69,6 +72,15 @@ function Field({
           required={field.required}
         />
       )}
+    </div>
+  );
+}
+
+function Header() {
+  return (
+    <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/frontline-logo.jpg" alt="Frontline" style={{ height: 72, objectFit: "contain" }} />
     </div>
   );
 }
@@ -113,23 +125,30 @@ export default function IncidentForm() {
 
   if (status === "success") {
     return (
-      <div style={{ maxWidth: 480, margin: "80px auto", textAlign: "center", padding: 24 }}>
-        <h2>Report submitted</h2>
-        <p>Thanks — your incident report has been recorded.</p>
-        <button onClick={() => { setStatus("idle"); setIncidentType(""); setAnswers({}); }} style={{ marginTop: 16, padding: "10px 20px" }}>
-          Submit another report
-        </button>
+      <div style={{ maxWidth: 480, margin: "0 auto", padding: "24px 16px 80px" }}>
+        <Header />
+        <div style={{ textAlign: "center", padding: 24 }}>
+          <h2 style={{ color: BRAND_BLACK }}>Report submitted</h2>
+          <p>Thanks — your incident report has been recorded.</p>
+          <button
+            onClick={() => { setStatus("idle"); setIncidentType(""); setAnswers({}); }}
+            style={{ marginTop: 16, padding: "10px 20px", borderRadius: 8, border: `1px solid ${BRAND_RED}`, background: "white", color: BRAND_RED, fontWeight: 600, cursor: "pointer" }}
+          >
+            Submit another report
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
     <form onSubmit={handleSubmit} style={{ maxWidth: 640, margin: "0 auto", padding: "24px 16px 80px" }}>
-      <h1 style={{ fontSize: 22, marginBottom: 4 }}>Incident Report</h1>
+      <Header />
+      <h1 style={{ fontSize: 22, marginBottom: 4, color: BRAND_BLACK }}>Incident Report</h1>
       <p style={{ color: "#666", marginTop: 0, marginBottom: 24 }}>Select what happened, then fill out the details below.</p>
 
       <div style={{ marginBottom: 24 }}>
-        <label style={{ fontSize: 14, fontWeight: 600 }}>Type of Incident *</label>
+        <label style={{ fontSize: 14, fontWeight: 600, color: BRAND_BLACK }}>Type of Incident *</label>
         <select
           style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #d0d3d8", fontSize: 15, marginTop: 4 }}
           value={incidentType}
@@ -188,7 +207,7 @@ export default function IncidentForm() {
             width: "100%",
             padding: "14px",
             borderRadius: 8,
-            background: "#1a73e8",
+            background: BRAND_RED,
             color: "white",
             fontSize: 16,
             fontWeight: 600,
@@ -201,7 +220,7 @@ export default function IncidentForm() {
         </button>
       )}
 
-      {status === "error" && <p style={{ color: "#d23", marginTop: 12 }}>Error: {errorMessage}</p>}
+      {status === "error" && <p style={{ color: BRAND_RED, marginTop: 12 }}>Error: {errorMessage}</p>}
     </form>
   );
 }
