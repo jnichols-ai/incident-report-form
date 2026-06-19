@@ -3,7 +3,9 @@
 import { useMemo, useState } from "react";
 import {
   TYPE_OF_INCIDENT_OPTIONS,
-  AUTO_ACCIDENT_FIELDS,
+  AUTO_ACCIDENT_FIELDS_PART1,
+  AUTO_ACCIDENT_FIELDS_PART2,
+  TOW_FOLLOWUP_FIELDS,
   INJURY_FOLLOWUP_FIELDS,
   WITNESS_FOLLOWUP_FIELDS,
   POLICE_FOLLOWUP_FIELDS,
@@ -156,7 +158,6 @@ export default function IncidentForm() {
   const setPhotoField = (key: keyof PhotoFields, files: File[]) => setPhotos((prev) => ({ ...prev, [key]: files }));
 
   const fields = useMemo<FormField[]>(() => {
-    if (incidentType === "Auto Accident") return AUTO_ACCIDENT_FIELDS;
     if (incidentType === "Work Injury") return WORK_INJURY_FIELDS;
     if (incidentType === "Damager To Customers Property") return PROPERTY_DAMAGE_FIELDS;
     return [];
@@ -165,6 +166,7 @@ export default function IncidentForm() {
   const showInjuryFollowup = incidentType === "Auto Accident" && answers.wasAnyoneInjured && answers.wasAnyoneInjured !== "No Injuries";
   const showWitnessFollowup = incidentType === "Auto Accident" && answers.witness === "Yes";
   const showPoliceFollowup = incidentType === "Auto Accident" && answers.policeInvolved === "Yes";
+  const showTowFollowup = incidentType === "Auto Accident" && answers.vehicleDrivable === "No";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -255,6 +257,31 @@ export default function IncidentForm() {
 
       {incidentType === "Auto Accident" && (
         <>
+          {AUTO_ACCIDENT_FIELDS_PART1.map((field) => (
+            <Field key={field.key} field={field} value={answers[field.key]} onChange={setAnswer} />
+          ))}
+
+          {showTowFollowup && (
+            <div
+              style={{
+                background: "#fff3cd",
+                border: "1px solid #f0c36d",
+                borderRadius: 8,
+                padding: "12px 14px",
+                marginBottom: 16,
+                fontSize: 14,
+                fontWeight: 600,
+                color: BRAND_BLACK,
+              }}
+            >
+              If a tow is needed, call us immediately: 800-325-8838 option 2
+            </div>
+          )}
+          {showTowFollowup &&
+            TOW_FOLLOWUP_FIELDS.map((field) => (
+              <Field key={field.key} field={field} value={answers[field.key]} onChange={setAnswer} />
+            ))}
+
           <FileField
             label="Photos of the Accident"
             required
@@ -270,6 +297,10 @@ export default function IncidentForm() {
           />
           {showInjuryFollowup &&
             INJURY_FOLLOWUP_FIELDS.map((f) => <Field key={f.key} field={f} value={answers[f.key]} onChange={setAnswer} />)}
+
+          {AUTO_ACCIDENT_FIELDS_PART2.map((field) => (
+            <Field key={field.key} field={field} value={answers[field.key]} onChange={setAnswer} />
+          ))}
 
           <Field
             field={{ key: "witness", label: "Was there a witness?", type: "select", options: ["Yes", "No"], required: true }}

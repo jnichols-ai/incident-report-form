@@ -18,22 +18,30 @@ export const COLUMN_IDS: Record<string, string> = {
   dateOfIncident: "date_mm4evkj", // Date and Time of Incident
   location: "location_mm4e7w83",
 
-  // --- Auto Accident ---
+  // --- Auto Accident (mirrors the Enterprise Fleet "Accident Report" PDF) ---
+  cityState: "text_mm4f43yp", // City/State accident occurred in
+  enterpriseUnitNumber: "text_mm4fws6z", // Enterprise Unit# of vehicle
+  vinLast8: "text_mm4fzybv", // Last 8 of VIN#
+
   driverName: "text_mm4enbmg",
   driverAddress: "text_mm4etkjp",
   driverPhone: "phone_mm4epawf",
-  driverLicenseNumber: "text_mm4ett1e",
-  driverDob: "date_mm4e5asg",
+  repairShopZip: "text_mm4fys5v", // Best zip code to locate a nearby repair shop
   wasAnyoneInjured: "dropdown_mm4ebcht",
   injuryExplanation: "text_mm4e8dzg",
   seatbeltWorn: "dropdown_mm4e46w7",
   vehicleDrivable: "dropdown_mm4en4bd",
-  roadsideCallNote: "text_mm4ew2d0",
-  vehicleDamageLocation: "text_mm4efnby",
+  roadsideCallNote: "text_mm4ew2d0", // If already towed, location of vehicle
+  towedItemsInVehicle: "text_mm4fem4f", // (If towed) work/personal items still in vehicle
+  vehicleDamageLocation: "text_mm4efnby", // Description of the Damage
+  hasDecals: "dropdown_mm4fawr7", // Does vehicle have decals
   airbagDeployed: "dropdown_mm4e968m",
   weatherType: "dropdown_mm4e2298",
+  businessOrPersonalUse: "dropdown_mm4fs4yd",
+  carSeatsInVehicle: "dropdown_mm4fv9w",
+  dashcamFootage: "text_mm4fqqkb",
   accidentDescriptionLong: "long_text_mm4ej9gd",
-  accidentDescriptionShort: "text_mm4exvx8",
+  stopType: "text_mm4exvx8", // If applicable: 4-way/3-way/2-way stop, in motion/stopped
 
   claimantName: "text_mm4ern7n",
   claimantAddress: "text_mm4e3m8a",
@@ -42,11 +50,11 @@ export const COLUMN_IDS: Record<string, string> = {
   claimantDob: "date_mm4ecb3w",
   claimantVehicle: "text_mm4e7ea1",
   licensePlateNumber: "text_mm4ecmnw",
-  claimantInsurance: "text_mm4egapd",
+  claimantInsuranceCompany: "text_mm4egapd",
+  claimantInsurancePolicyNumber: "text_mm4fkbd9",
   claimantInsurancePhone: "phone_mm4e5h5m",
   claimantDamageLocation: "text_mm4et86j",
   claimantDistinguishableMarks: "long_text_mm4earbp",
-  claimantAppearance: "long_text_mm4ebgca",
 
   witness: "dropdown_mm4eaj4w",
   witnessName: "text_mm4e6x8w",
@@ -54,8 +62,10 @@ export const COLUMN_IDS: Record<string, string> = {
   witnessPhone: "phone_mm4em9vs",
 
   policeInvolved: "dropdown_mm4e2r8n",
-  policeReportInfo: "text_mm4e9h4z",
   policeDepartment: "text_mm4ep9df",
+  policePhone: "phone_mm4fks2s",
+  policeReportInfo: "text_mm4e9h4z", // Report Number
+  ticketed: "dropdown_mm4f619f",
 
   // --- Work Injury ---
   reportedToManager: "text_mm4es4m6",
@@ -101,22 +111,40 @@ export const TYPE_OF_INCIDENT_OPTIONS: IncidentType[] = [
   "Damager To Customers Property",
 ];
 
-// Auto Accident: flat fields shown regardless of secondary answers
-export const AUTO_ACCIDENT_FIELDS: FormField[] = [
+// Auto Accident: Part 1 — shown first, always rendered
+export const AUTO_ACCIDENT_FIELDS_PART1: FormField[] = [
   { key: "dateOfIncident", label: "Date and Time of Incident", type: "date", required: true },
-  { key: "location", label: "Location / Street or Intersection", type: "text", required: true },
+  { key: "location", label: "What Street / Intersection Did the Accident Happen On?", type: "text", required: true },
+  { key: "cityState", label: "City / State", type: "text" },
+  { key: "enterpriseUnitNumber", label: "Enterprise Unit # of Vehicle", type: "text" },
+  { key: "vinLast8", label: "Last 8 of VIN #", type: "text" },
   { key: "driverName", label: "Driver's Name", type: "text", required: true },
   { key: "driverAddress", label: "Driver's Full Home Address", type: "text" },
   { key: "driverPhone", label: "Driver's Phone Number", type: "phone" },
-  { key: "driverLicenseNumber", label: "Driver's License Number", type: "text" },
-  { key: "driverDob", label: "Driver's Date of Birth", type: "date" },
+  { key: "repairShopZip", label: "Best Zip Code to Locate a Nearby Repair Shop", type: "text" },
   { key: "seatbeltWorn", label: "Were you wearing your seatbelt?", type: "select", options: ["Yes", "No"] },
   { key: "vehicleDrivable", label: "Is the vehicle safely drivable?", type: "select", options: ["Yes", "No"] },
-  { key: "roadsideCallNote", label: "If a tow is needed, note details here (call 800-325-8838 option 2 immediately)", type: "text" },
-  { key: "vehicleDamageLocation", label: "Where is the damage to the vehicle?", type: "text" },
+];
+
+// Shown only when vehicleDrivable === "No" (the live "tow" banner with the
+// 800-325-8838 option 2 number is rendered as a static note in
+// IncidentForm.tsx right above this section, per Enterprise's original PDF).
+export const TOW_FOLLOWUP_FIELDS: FormField[] = [
+  { key: "roadsideCallNote", label: "If the Vehicle Has Already Been Towed, Please Provide the Location of the Vehicle", type: "textarea" },
+  { key: "towedItemsInVehicle", label: "(If Towed) Does the Vehicle Still Have Work/Personal Items in It?", type: "text" },
+];
+
+// Auto Accident: Part 2 — rendered after the tow section, always shown
+export const AUTO_ACCIDENT_FIELDS_PART2: FormField[] = [
+  { key: "vehicleDamageLocation", label: "Description of the Damage", type: "text" },
+  { key: "hasDecals", label: "Does the Vehicle Have Decals?", type: "select", options: ["Yes", "No"] },
   { key: "airbagDeployed", label: "Did your airbag deploy?", type: "select", options: ["Yes", "No", "Unknown"] },
   { key: "weatherType", label: "Weather conditions at time of accident", type: "select", options: ["Clear", "Rain", "Snow", "Fog", "Windy", "Other"] },
+  { key: "businessOrPersonalUse", label: "Business or Personal Use?", type: "select", options: ["Business", "Personal"] },
+  { key: "carSeatsInVehicle", label: "Were There Car Seats in the Vehicle?", type: "select", options: ["Yes", "No"] },
+  { key: "dashcamFootage", label: "Is There Dashcam Footage Available?", type: "text" },
   { key: "accidentDescriptionLong", label: "Describe how the accident happened", type: "textarea", required: true },
+  { key: "stopType", label: "If Applicable: (4-Way, 3-Way, 2-Way Stop?) (In Motion, Completely Stopped?)", type: "text" },
 
   { key: "claimantName", label: "Claimant Name (other vehicle/pedestrian)", type: "text" },
   { key: "claimantAddress", label: "Claimant Full Address", type: "text" },
@@ -125,7 +153,8 @@ export const AUTO_ACCIDENT_FIELDS: FormField[] = [
   { key: "claimantDob", label: "Claimant Date of Birth", type: "date" },
   { key: "claimantVehicle", label: "Claimant Year, Make, & Model", type: "text" },
   { key: "licensePlateNumber", label: "Claimant License Plate Number & State", type: "text" },
-  { key: "claimantInsurance", label: "Claimant Insurance Company & Policy Number", type: "text" },
+  { key: "claimantInsuranceCompany", label: "Claimant Insurance Company", type: "text" },
+  { key: "claimantInsurancePolicyNumber", label: "Claimant Insurance Policy Number", type: "text" },
   { key: "claimantInsurancePhone", label: "Claimant Insurance Company's Phone Number", type: "phone" },
   { key: "claimantDamageLocation", label: "Where is the damage to the claimant's vehicle?", type: "text" },
   { key: "claimantDistinguishableMarks", label: "Any distinguishable marks on claimant's vehicle?", type: "textarea" },
@@ -144,7 +173,9 @@ export const WITNESS_FOLLOWUP_FIELDS: FormField[] = [
 
 export const POLICE_FOLLOWUP_FIELDS: FormField[] = [
   { key: "policeDepartment", label: "Police Department", type: "text", required: true },
-  { key: "policeReportInfo", label: "Police Report Number / Info", type: "text" },
+  { key: "policePhone", label: "Police Department Phone Number", type: "phone" },
+  { key: "policeReportInfo", label: "Report Number", type: "text" },
+  { key: "ticketed", label: "Was Anyone Ticketed?", type: "select", options: ["Yes", "No"] },
 ];
 
 // Work Injury: flat, no nested conditions

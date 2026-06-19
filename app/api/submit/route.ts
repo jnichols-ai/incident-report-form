@@ -29,10 +29,14 @@ const DROPDOWN_KEYS = new Set([
   "wasAnyoneInjured",
   "seatbeltWorn",
   "vehicleDrivable",
+  "hasDecals",
   "airbagDeployed",
   "weatherType",
+  "businessOrPersonalUse",
+  "carSeatsInVehicle",
   "witness",
   "policeInvolved",
+  "ticketed",
   "immediateActionTaken",
   "severityLevel",
   "bodyPartAffected",
@@ -42,8 +46,8 @@ const DROPDOWN_KEYS = new Set([
   "estimatedSeverity",
 ]);
 const STATUS_KEYS = new Set(["customerNotificationStatus"]);
-const DATE_KEYS = new Set(["dateOfIncident", "driverDob", "claimantDob"]);
-const PHONE_KEYS = new Set(["driverPhone", "claimantPhone", "claimantInsurancePhone", "witnessPhone"]);
+const DATE_KEYS = new Set(["dateOfIncident", "claimantDob"]);
+const PHONE_KEYS = new Set(["driverPhone", "claimantPhone", "claimantInsurancePhone", "witnessPhone", "policePhone"]);
 // "location" is a monday Location-type column. Passing a plain string makes monday
 // try to auto-parse it into lat/lng/address and produces garbage. Send the object
 // shape directly with address-only (no lat/lng) so it's stored as free text instead.
