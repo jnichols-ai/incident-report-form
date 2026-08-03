@@ -9,6 +9,7 @@ import { PDFDocument, StandardFonts, rgb, PDFFont, PDFPage } from "pdf-lib";
 // instruction to "keep as-is."
 
 export interface AccidentReportData {
+  employeeName?: string;
   dateOfIncident?: string;
   location?: string;
   cityState?: string;
@@ -74,6 +75,7 @@ const SECTIONS: Section[] = [
     rows: [
       { label: "", note: "*Please take pictures at the scene of the accident*" },
       { label: "", note: "*If the other party accepts fault, ask for it in writing, please date and sign*" },
+      { label: "Employee Name:", key: "employeeName" },
       { label: "Date and Time of Incident:", key: "dateOfIncident" },
       { label: "What street/intersection did the accident happen on?", key: "location" },
       { label: "City/State:", key: "cityState" },

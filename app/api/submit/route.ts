@@ -19,9 +19,10 @@ function groupForIncidentType(incidentType: SubmitBody["incidentType"]): string 
 
 function itemNameFor(incidentType: SubmitBody["incidentType"], answers: Record<string, string>): string {
   const date = answers.dateOfIncident ? new Date(answers.dateOfIncident).toLocaleDateString() : new Date().toLocaleDateString();
-  if (incidentType === "Auto Accident") return `Auto Accident – ${answers.driverName || "Unknown driver"} – ${date}`;
-  if (incidentType === "Work Injury") return `Work Injury – ${answers.reportedToManager || "Unreported"} – ${date}`;
-  return `Property Damage – ${answers.customerName || "Unknown customer"} – ${date}`;
+  const employee = answers.employeeName || "Unknown employee";
+  if (incidentType === "Auto Accident") return `Auto Accident – ${answers.driverName || employee} – ${date}`;
+  if (incidentType === "Work Injury") return `Work Injury – ${employee} – ${date}`;
+  return `Property Damage – ${employee} – ${date}`;
 }
 
 // Dropdown columns need {labels: [value]}; status columns need {label: value} — different formats.

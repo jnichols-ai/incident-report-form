@@ -14,7 +14,8 @@ export const TOP_LEVEL_COLUMN_ID = "dropdown_mm4ejzcn"; // "Dropdown" (Type of I
 
 // Maps every field key used in the form to its monday.com column id.
 export const COLUMN_IDS: Record<string, string> = {
-  // Shared
+  // Shared (all incident types)
+  employeeName: "text_mm5wmgj5", // Employee Name
   dateOfIncident: "date_mm4evkj", // Date and Time of Incident
   location: "location_mm4e7w83",
 
@@ -113,6 +114,7 @@ export const TYPE_OF_INCIDENT_OPTIONS: IncidentType[] = [
 
 // Auto Accident: Part 1 — shown first, always rendered
 export const AUTO_ACCIDENT_FIELDS_PART1: FormField[] = [
+  { key: "employeeName", label: "Employee Name", type: "text", required: true },
   { key: "dateOfIncident", label: "Date and Time of Incident", type: "date", required: true },
   { key: "location", label: "What Street / Intersection Did the Accident Happen On?", type: "text", required: true },
   { key: "cityState", label: "City / State", type: "text" },
@@ -180,6 +182,7 @@ export const POLICE_FOLLOWUP_FIELDS: FormField[] = [
 
 // Work Injury: flat, no nested conditions
 export const WORK_INJURY_FIELDS: FormField[] = [
+  { key: "employeeName", label: "Employee Name", type: "text", required: true },
   { key: "dateOfIncident", label: "Date and Time of Incident", type: "date", required: true },
   { key: "location", label: "Location", type: "text", required: true },
   { key: "reportedToManager", label: "Reported To (Manager Name)", type: "text", required: true },
@@ -191,6 +194,7 @@ export const WORK_INJURY_FIELDS: FormField[] = [
 
 // Property Damage: flat, no nested conditions
 export const PROPERTY_DAMAGE_FIELDS: FormField[] = [
+  { key: "employeeName", label: "Employee Name", type: "text", required: true },
   { key: "dateOfIncident", label: "Date and Time of Incident", type: "date", required: true },
   { key: "location", label: "Location", type: "text", required: true },
   { key: "customerAccountNumber", label: "Customer Account Number", type: "text" },
