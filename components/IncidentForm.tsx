@@ -20,6 +20,52 @@ type Answers = Record<string, string>;
 const BRAND_RED = "#c1272d";
 const BRAND_BLACK = "#1a1a1a";
 
+// Vercel serverless functions hard-cap request bodies at 4.5MB and reject
+// anything larger with a plain-text 413 before it ever reaches our API route.
+// Phone camera photos routinely come in at 3-10MB each, so without
+// compression a single accident photo (let alone several) can blow past
+// that limit. We downscale + re-encode every photo client-side before it's
+// ever added to the form so submissions stay well under the cap.
+const MAX_PHOTO_DIMENSION = 1600;
+const PHOTO_JPEG_QUALITY = 0.8;
+
+async function compressImage(file: File): Promise<File> {
+  // Only attempt to compress actual images; pass through anything else
+  // (e.g. if a non-image somehow gets selected) so we never block a valid
+  // submission because compression doesn't apply.
+  if (!file.type.startsWith("image/")) return file;
+
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, MAX_PHOTO_DIMENSION / Math.max(bitmap.width, bitmap.height));
+    const width = Math.round(bitmap.width * scale);
+    const height = Math.round(bitmap.height * scale);
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return file;
+    ctx.drawImage(bitmap, 0, 0, width, height);
+
+    const blob: Blob | null = await new Promise((resolve) =>
+      canvas.toBlob(resolve, "image/jpeg", PHOTO_JPEG_QUALITY)
+    );
+    if (!blob) return file;
+
+    // If compression somehow produced a larger file (rare, e.g. tiny source
+    // images), just keep the original rather than making things worse.
+    if (blob.size >= file.size) return file;
+
+    const newName = file.name.replace(/\.[^.]+$/, "") + ".jpg";
+    return new File([blob], newName, { type: "image/jpeg" });
+  } catch {
+    // If the browser can't decode/compress it for any reason, fall back to
+    // the original file rather than blocking the user from submitting.
+    return file;
+  }
+}
+
 function Field({
   field,
   value,
@@ -93,13 +139,33 @@ function FileField({
   multiple,
   files,
   onChange,
+  onCompressingChange,
 }: {
   label: string;
   required?: boolean;
   multiple?: boolean;
   files: File[];
   onChange: (files: File[]) => void;
+  onCompressingChange?: (compressing: boolean) => void;
 }) {
+  const [compressing, setCompressing] = useState(false);
+
+  async function handleFiles(selected: File[]) {
+    if (selected.length === 0) {
+      onChange([]);
+      return;
+    }
+    setCompressing(true);
+    onCompressingChange?.(true);
+    try {
+      const compressed = await Promise.all(selected.map(compressImage));
+      onChange(compressed);
+    } finally {
+      setCompressing(false);
+      onCompressingChange?.(false);
+    }
+  }
+
   return (
     <div style={{ marginBottom: 16 }}>
       <label style={{ fontSize: 14, fontWeight: 600, color: BRAND_BLACK }}>
@@ -110,7 +176,7 @@ function FileField({
         type="file"
         accept="image/*"
         multiple={multiple}
-        onChange={(e) => onChange(Array.from(e.target.files || []))}
+        onChange={(e) => handleFiles(Array.from(e.target.files || []))}
         required={!!required}
         style={{
           width: "100%",
@@ -122,10 +188,13 @@ function FileField({
           background: "white",
         }}
       />
-      {files.length > 0 && (
+      {compressing && <p style={{ marginTop: 6, fontSize: 13, color: "#555" }}>Preparing photo(s)…</p>}
+      {!compressing && files.length > 0 && (
         <ul style={{ marginTop: 6, paddingLeft: 18, fontSize: 13, color: "#555" }}>
           {files.map((f, i) => (
-            <li key={i}>{f.name}</li>
+            <li key={i}>
+              {f.name} ({(f.size / 1024).toFixed(0)} KB)
+            </li>
           ))}
         </ul>
       )}
@@ -153,6 +222,10 @@ export default function IncidentForm() {
   const [photos, setPhotos] = useState<PhotoFields>(EMPTY_PHOTOS);
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
+  // Tracks how many photo fields are actively compressing, so the submit
+  // button can be disabled until it's safe to read final file sizes.
+  const [compressingCount, setCompressingCount] = useState(0);
+  const setFieldCompressing = (delta: 1 | -1) => setCompressingCount((prev) => Math.max(0, prev + delta));
 
   const setAnswer = (key: string, value: string) => setAnswers((prev) => ({ ...prev, [key]: value }));
   const setPhotoField = (key: keyof PhotoFields, files: File[]) => setPhotos((prev) => ({ ...prev, [key]: files }));
@@ -197,8 +270,25 @@ export default function IncidentForm() {
         method: "POST",
         body: formData,
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Submission failed");
+
+      // Don't assume the response is JSON: infra-level failures (e.g. Vercel's
+      // 413 when a request body is too large) return a plain-text/HTML body,
+      // and calling res.json() on that throws a confusing "Unexpected token"
+      // parse error instead of a useful message.
+      const raw = await res.text();
+      let json: any = null;
+      try {
+        json = raw ? JSON.parse(raw) : null;
+      } catch {
+        json = null;
+      }
+
+      if (!res.ok) {
+        if (res.status === 413) {
+          throw new Error("These photos are still too large to upload. Try attaching fewer photos, or lower-resolution ones.");
+        }
+        throw new Error(json?.error || `Submission failed (status ${res.status}). Please try again.`);
+      }
       setStatus("success");
     } catch (err: any) {
       setStatus("error");
@@ -288,6 +378,7 @@ export default function IncidentForm() {
             multiple
             files={photos.accidentPhotos}
             onChange={(files) => setPhotoField("accidentPhotos", files)}
+            onCompressingChange={(c) => setFieldCompressing(c ? 1 : -1)}
           />
 
           <Field
@@ -322,6 +413,7 @@ export default function IncidentForm() {
                 label="Picture of Police Report or Paperwork"
                 files={photos.policeReportPhoto}
                 onChange={(files) => setPhotoField("policeReportPhoto", files)}
+                onCompressingChange={(c) => setFieldCompressing(c ? 1 : -1)}
               />
             </>
           )}
@@ -334,6 +426,7 @@ export default function IncidentForm() {
           multiple
           files={photos.workInjuryPhotos}
           onChange={(files) => setPhotoField("workInjuryPhotos", files)}
+          onCompressingChange={(c) => setFieldCompressing(c ? 1 : -1)}
         />
       )}
 
@@ -344,13 +437,14 @@ export default function IncidentForm() {
           multiple
           files={photos.propertyDamagePhotos}
           onChange={(files) => setPhotoField("propertyDamagePhotos", files)}
+          onCompressingChange={(c) => setFieldCompressing(c ? 1 : -1)}
         />
       )}
 
       {incidentType && (
         <button
           type="submit"
-          disabled={status === "submitting"}
+          disabled={status === "submitting" || compressingCount > 0}
           style={{
             width: "100%",
             padding: "14px",
@@ -361,10 +455,10 @@ export default function IncidentForm() {
             fontWeight: 600,
             border: "none",
             marginTop: 12,
-            cursor: status === "submitting" ? "not-allowed" : "pointer",
+            cursor: status === "submitting" || compressingCount > 0 ? "not-allowed" : "pointer",
           }}
         >
-          {status === "submitting" ? "Submitting…" : "Submit Report"}
+          {status === "submitting" ? "Submitting…" : compressingCount > 0 ? "Preparing photos…" : "Submit Report"}
         </button>
       )}
 

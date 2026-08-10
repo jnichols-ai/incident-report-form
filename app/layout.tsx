@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import UpdateBanner from "@/components/UpdateBanner";
 
 export const metadata: Metadata = {
   title: "Incident Report",
@@ -18,19 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body style={{ margin: 0, fontFamily: "system-ui, -apple-system, sans-serif", background: "#f5f6f8" }}>
         {children}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              if ('serviceWorker' in navigator) {
-                window.addEventListener('load', function () {
-                  navigator.serviceWorker.register('/sw.js').catch(function (e) {
-                    console.warn('SW registration failed', e);
-                  });
-                });
-              }
-            `,
-          }}
-        />
+        <UpdateBanner />
       </body>
     </html>
   );
