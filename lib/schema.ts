@@ -12,6 +12,30 @@ export const GROUP_IDS = {
 
 export const TOP_LEVEL_COLUMN_ID = "dropdown_mm4ejzcn"; // "Dropdown" (Type of Incident)
 
+// Employee Directory board (HR workspace) — read-only source for employee info.
+export const EMPLOYEE_DIRECTORY_BOARD_ID = "18003250999";
+export const EMPLOYEE_DIRECTORY_ACTIVE_GROUP_ID = "group_mkvynkkh"; // "Active Employee"
+export const EMPLOYEE_DIRECTORY_COLUMNS = {
+  hireDate: "date_1", // Official Hire Date
+  birthday: "date_18", // Birthday
+  email: "email",
+  workEmail: "email_mkwje773",
+  phone: "phone",
+  workPhone: "phone_mkwcbhph",
+  jobPosition: "color_mkw1131k", // Job Position (status)
+};
+
+// Columns on the incident board that get filled from the directory on submit.
+// None of these are shown on the form.
+export const EMPLOYEE_LINK_COLUMN_ID = "board_relation_mm4e266g"; // "Employee Directory" relation
+export const EMPLOYEE_INFO_COLUMN_IDS = {
+  hireDate: "date_mm7phsm7", // Employee Hire Date
+  dateOfBirth: "date_mm7pzrbp", // Employee Date of Birth
+  email: "email_mm7p8dp1", // Employee Email
+  phone: "phone_mm7pqvre", // Employee Phone
+  jobPosition: "text_mm7px5q6", // Employee Job Position
+};
+
 // Maps every field key used in the form to its monday.com column id.
 export const COLUMN_IDS: Record<string, string> = {
   // Shared (all incident types)
@@ -101,7 +125,7 @@ export type IncidentType = "Auto Accident" | "Work Injury" | "Damager To Custome
 export interface FormField {
   key: string;
   label: string;
-  type: "text" | "textarea" | "date" | "select" | "phone" | "checkbox";
+  type: "text" | "textarea" | "date" | "select" | "phone" | "checkbox" | "employee";
   options?: string[];
   required?: boolean;
 }
@@ -115,7 +139,7 @@ export const TYPE_OF_INCIDENT_OPTIONS: IncidentType[] = [
 
 // Auto Accident: Part 1 — shown first, always rendered
 export const AUTO_ACCIDENT_FIELDS_PART1: FormField[] = [
-  { key: "employeeName", label: "Employee Name", type: "text", required: true },
+  { key: "employeeName", label: "Employee Name", type: "employee", required: true },
   { key: "dateOfIncident", label: "Date and Time of Incident", type: "date", required: true },
   { key: "location", label: "What Street / Intersection Did the Accident Happen On?", type: "text", required: true },
   { key: "cityState", label: "City / State", type: "text" },
@@ -183,7 +207,7 @@ export const POLICE_FOLLOWUP_FIELDS: FormField[] = [
 
 // Work Injury: flat, no nested conditions
 export const WORK_INJURY_FIELDS: FormField[] = [
-  { key: "employeeName", label: "Employee Name", type: "text", required: true },
+  { key: "employeeName", label: "Employee Name", type: "employee", required: true },
   { key: "dateOfIncident", label: "Date and Time of Incident", type: "date", required: true },
   { key: "location", label: "Location", type: "text", required: true },
   { key: "reportedToManager", label: "Reported To (Manager Name)", type: "text", required: true },
@@ -196,7 +220,7 @@ export const WORK_INJURY_FIELDS: FormField[] = [
 
 // Property Damage: flat, no nested conditions
 export const PROPERTY_DAMAGE_FIELDS: FormField[] = [
-  { key: "employeeName", label: "Employee Name", type: "text", required: true },
+  { key: "employeeName", label: "Employee Name", type: "employee", required: true },
   { key: "dateOfIncident", label: "Date and Time of Incident", type: "date", required: true },
   { key: "location", label: "Location", type: "text", required: true },
   { key: "customerAccountNumber", label: "Customer Account Number", type: "text" },

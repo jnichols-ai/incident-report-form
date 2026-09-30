@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   TYPE_OF_INCIDENT_OPTIONS,
   AUTO_ACCIDENT_FIELDS_PART1,
@@ -66,15 +66,96 @@ async function compressImage(file: File): Promise<File> {
   }
 }
 
+type EmployeeOption = { id: string; name: string };
+
+// Employee picker: type to search the directory, then pick a name. Only the id
+// is kept (as answers.employeeId); everything else about the employee is looked
+// up server-side on submit and is never shown here.
+function EmployeeField({
+  field,
+  value,
+  employees,
+  loadFailed,
+  onPick,
+}: {
+  field: FormField;
+  value: string;
+  employees: EmployeeOption[];
+  loadFailed: boolean;
+  onPick: (name: string, id: string) => void;
+}) {
+  // Label shown in the list. Duplicate names get a number so each one is selectable.
+  const options = useMemo(() => {
+    const seen = new Map<string, number>();
+    return employees.map((e) => {
+      const n = (seen.get(e.name) || 0) + 1;
+      seen.set(e.name, n);
+      return { id: e.id, name: e.name, label: n > 1 ? `${e.name} (${n})` : e.name };
+    });
+  }, [employees]);
+
+  const listId = `employees-${field.key}`;
+
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const typed = e.target.value;
+    const match = options.find((o) => o.label === typed);
+    onPick(match ? match.label : typed, match ? match.id : "");
+    // Must pick a name from the directory — unless the list couldn't load, in which
+    // case plain typing is allowed so nobody is blocked from reporting.
+    e.target.setCustomValidity(loadFailed || match || !typed ? "" : "Please choose a name from the list.");
+  }
+
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <label style={{ fontSize: 14, fontWeight: 600, color: BRAND_BLACK }}>
+        {field.label}
+        {field.required ? <span style={{ color: BRAND_RED }}> *</span> : null}
+      </label>
+      <input
+        list={listId}
+        value={value || ""}
+        onChange={handleChange}
+        required={field.required}
+        placeholder={loadFailed ? "Employee list unavailable — type your full name" : "Start typing your name…"}
+        autoComplete="off"
+        style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #d0d3d8", fontSize: 15, marginTop: 4 }}
+      />
+      <datalist id={listId}>
+        {options.map((o) => (
+          <option key={o.id} value={o.label} />
+        ))}
+      </datalist>
+    </div>
+  );
+}
+
 function Field({
   field,
   value,
   onChange,
+  employees,
+  employeesFailed,
+  onPickEmployee,
 }: {
   field: FormField;
   value: string;
   onChange: (key: string, value: string) => void;
+  employees?: EmployeeOption[];
+  employeesFailed?: boolean;
+  onPickEmployee?: (name: string, id: string) => void;
 }) {
+  if (field.type === "employee" && onPickEmployee) {
+    return (
+      <EmployeeField
+        field={field}
+        value={value}
+        employees={employees || []}
+        loadFailed={!!employeesFailed}
+        onPick={onPickEmployee}
+      />
+    );
+  }
+
   const commonStyle: React.CSSProperties = {
     width: "100%",
     padding: "10px 12px",
@@ -256,6 +337,29 @@ export default function IncidentForm() {
   const setAnswer = (key: string, value: string) => setAnswers((prev) => ({ ...prev, [key]: value }));
   const setPhotoField = (key: keyof PhotoFields, files: File[]) => setPhotos((prev) => ({ ...prev, [key]: files }));
 
+  // Employee directory (names only) for the Employee Name picker.
+  const [employees, setEmployees] = useState<EmployeeOption[]>([]);
+  const [employeesFailed, setEmployeesFailed] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/employees")
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("bad status"))))
+      .then((j) => {
+        if (cancelled) return;
+        if (Array.isArray(j?.employees) && j.employees.length > 0) setEmployees(j.employees);
+        else setEmployeesFailed(true);
+      })
+      .catch(() => {
+        if (!cancelled) setEmployeesFailed(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const pickEmployee = (name: string, id: string) =>
+    setAnswers((prev) => ({ ...prev, employeeName: name, employeeId: id }));
+  const employeeProps = { employees, employeesFailed, onPickEmployee: pickEmployee };
+
   const fields = useMemo<FormField[]>(() => {
     if (incidentType === "Work Injury") return WORK_INJURY_FIELDS;
     if (incidentType === "Damager To Customers Property") return PROPERTY_DAMAGE_FIELDS;
@@ -368,13 +472,13 @@ export default function IncidentForm() {
       </div>
 
       {fields.map((field) => (
-        <Field key={field.key} field={field} value={answers[field.key]} onChange={setAnswer} />
+        <Field key={field.key} field={field} value={answers[field.key]} onChange={setAnswer} {...employeeProps} />
       ))}
 
       {incidentType === "Auto Accident" && (
         <>
           {AUTO_ACCIDENT_FIELDS_PART1.map((field) => (
-            <Field key={field.key} field={field} value={answers[field.key]} onChange={setAnswer} />
+            <Field key={field.key} field={field} value={answers[field.key]} onChange={setAnswer} {...employeeProps} />
           ))}
 
           {showTowFollowup && (

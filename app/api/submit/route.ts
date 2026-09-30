@@ -1,7 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createItem, uploadFileToColumn } from "@/lib/monday";
 import { generateAccidentReportPdf } from "@/lib/pdf";
-import { BOARD_ID, GROUP_IDS, COLUMN_IDS, TOP_LEVEL_COLUMN_ID, FILE_COLUMN_IDS } from "@/lib/schema";
+import { getEmployeeDetails } from "@/lib/employees";
+import {
+  BOARD_ID,
+  GROUP_IDS,
+  COLUMN_IDS,
+  TOP_LEVEL_COLUMN_ID,
+  FILE_COLUMN_IDS,
+  EMPLOYEE_LINK_COLUMN_ID,
+  EMPLOYEE_INFO_COLUMN_IDS,
+} from "@/lib/schema";
 
 export const runtime = "nodejs";
 
@@ -114,9 +123,36 @@ export async function POST(req: NextRequest) {
 
     const answers: Record<string, string> = JSON.parse(answersRaw);
 
+    // The employee picked on the form (directory item id). Looked up server-side
+    // so hire date / DOB / email / phone / job position never reach the browser.
+    // If the lookup fails for any reason, the report still gets submitted.
+    const employeeId = answers.employeeId;
+    delete answers.employeeId;
+    let employee: Awaited<ReturnType<typeof getEmployeeDetails>> = null;
+    if (employeeId) {
+      try {
+        employee = await getEmployeeDetails(employeeId);
+      } catch (e) {
+        console.error("Employee lookup failed:", e);
+      }
+    }
+    if (employee) answers.employeeName = employee.name;
+
     const groupId = groupForIncidentType(incidentType);
     const itemName = itemNameFor(incidentType, answers);
     const columnValues = buildColumnValues(incidentType, answers);
+
+    if (employee) {
+      const ids = EMPLOYEE_INFO_COLUMN_IDS;
+      columnValues[EMPLOYEE_LINK_COLUMN_ID] = { item_ids: [Number(employee.id)] };
+      if (employee.hireDate) columnValues[ids.hireDate] = { date: employee.hireDate };
+      if (employee.dateOfBirth) columnValues[ids.dateOfBirth] = { date: employee.dateOfBirth };
+      if (employee.email) columnValues[ids.email] = { email: employee.email, text: employee.email };
+      if (employee.phone) {
+        columnValues[ids.phone] = { phone: employee.phone.phone, countryShortName: employee.phone.countryShortName };
+      }
+      if (employee.jobPosition) columnValues[ids.jobPosition] = employee.jobPosition;
+    }
 
     const itemId = await createItem(BOARD_ID, groupId, itemName, columnValues);
 
