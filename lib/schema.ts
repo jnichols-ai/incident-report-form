@@ -74,6 +74,7 @@ export const COLUMN_IDS: Record<string, string> = {
   severityLevel: "dropdown_mm4e7902",
   bodyPartAffected: "dropdown_mm4eqjf1",
   typeOfInjury: "dropdown_mm4ewfhs",
+  taraNotified: "boolean_mm7py5z", // Was Tara Notified (checkbox)
 
   // --- Property Damage ---
   customerAccountNumber: "text_mm4efa23",
@@ -100,7 +101,7 @@ export type IncidentType = "Auto Accident" | "Work Injury" | "Damager To Custome
 export interface FormField {
   key: string;
   label: string;
-  type: "text" | "textarea" | "date" | "select" | "phone";
+  type: "text" | "textarea" | "date" | "select" | "phone" | "checkbox";
   options?: string[];
   required?: boolean;
 }
@@ -190,6 +191,7 @@ export const WORK_INJURY_FIELDS: FormField[] = [
   { key: "severityLevel", label: "Severity Level", type: "select", options: ["Minor – No medical treatment needed", "Moderate – First aid or urgent care recommended", "Serious – Emergency care required"], required: true },
   { key: "bodyPartAffected", label: "Body Part Affected", type: "select", options: ["Hand / Finger", "Arm", "Leg / Foot", "Back", "Head / Face", "Eyes", "Other"] },
   { key: "typeOfInjury", label: "Type of Injury", type: "select", options: ["Cut / Laceration", "Burn", "Bite / Sting", "Slip / Fall", "Strain / Sprain", "Chemical Exposure", "Other"] },
+  { key: "taraNotified", label: "WAS TARA NOTIFIED", type: "checkbox" },
 ];
 
 // Property Damage: flat, no nested conditions

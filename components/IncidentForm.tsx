@@ -84,6 +84,32 @@ function Field({
     marginTop: 4,
   };
 
+  if (field.type === "checkbox") {
+    return (
+      <div style={{ marginBottom: 16 }}>
+        <label
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            fontSize: 14,
+            fontWeight: 600,
+            color: BRAND_BLACK,
+            cursor: "pointer",
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={value === "true"}
+            onChange={(e) => onChange(field.key, e.target.checked ? "true" : "")}
+            style={{ width: 22, height: 22 }}
+          />
+          {field.label}
+        </label>
+      </div>
+    );
+  }
+
   return (
     <div style={{ marginBottom: 16 }}>
       <label style={{ fontSize: 14, fontWeight: 600, color: BRAND_BLACK }}>

@@ -47,6 +47,8 @@ const DROPDOWN_KEYS = new Set([
   "estimatedSeverity",
 ]);
 const STATUS_KEYS = new Set(["customerNotificationStatus"]);
+// Checkbox columns take {checked: "true"}. The form sends "true" only when ticked.
+const CHECKBOX_KEYS = new Set(["taraNotified"]);
 const DATE_KEYS = new Set(["dateOfIncident", "claimantDob"]);
 const PHONE_KEYS = new Set(["driverPhone", "claimantPhone", "claimantInsurancePhone", "witnessPhone", "policePhone"]);
 // "location" is a monday Location-type column. Passing a plain string makes monday
@@ -65,6 +67,8 @@ function buildColumnValues(incidentType: SubmitBody["incidentType"], answers: Re
 
     if (DROPDOWN_KEYS.has(key)) {
       columnValues[columnId] = { labels: [value] };
+    } else if (CHECKBOX_KEYS.has(key)) {
+      if (value === "true") columnValues[columnId] = { checked: "true" };
     } else if (STATUS_KEYS.has(key)) {
       columnValues[columnId] = { label: value };
     } else if (DATE_KEYS.has(key)) {
